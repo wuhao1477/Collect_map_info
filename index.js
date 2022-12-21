@@ -1,36 +1,52 @@
 const axios = require("axios");
 const fs = require("fs");
 const json2xls = require("json2xls");
-const TXKey = ""; //腾讯地图的key，每日配额10000
-const GDKey = ""; //高德地图的key，每日配额100
-const BDKey = "";//百度地图的key，每日配额未知
+const {
+  TXKey,
+  GDKey,
+  BDKey,
+  latitude,
+  longitude,
+  Range=5000,
+} = require("./config.js");
 main();
 async function main() {
-  // let dataList = await getTXMAPdata();
-  // console.log(dataList);
-  // let txList = TXSchema(dataList);
-  // let xls = json2xls(txList);
-  // fs.writeFileSync('name.xlsx', xls, 'binary');
-
-  //   let dataList = await getGDMAPdata();
-  //   console.log(dataList);
-  //   let GDList = GDSchema(dataList);
-  //   let xls = json2xls(GDList);
-  //   fs.writeFileSync("name.xlsx", xls, "binary");
-
-  let dataList = await getBDMAPdata();
+  if(!(latitude&&longitude)){
+    return console.log(`请到config.js中完善经纬度数据`);
+  }
+  if(TXKey){
+    let dataList = await getTXMAPdata({ latitude, longitude, Range });
+    console.log(dataList);
+    let txList = TXSchema(dataList);
+    let xls = json2xls(txList);
+    fs.writeFileSync(`${Range}米内药店联系方式.xlsx`, xls, "binary");
+  }else if(GDKey){
+        let dataList = await getGDMAPdata({ latitude, longitude, Range });
+    console.log(dataList);
+    let GDList = GDSchema(dataList);
+    let xls = json2xls(GDList);
+    fs.writeFileSync(`${Range}米内药店联系方式.xlsx`, xls, "binary");
+  }else if(BDKey){
+    
+  let dataList = await getBDMAPdata({ latitude, longitude, Range });
   console.log(dataList);
   let BDList = BDSchema(dataList);
   let xls = json2xls(BDList);
-  fs.writeFileSync("name.xlsx", xls, "binary");
+  fs.writeFileSync(`${Range}米内药店联系方式.xlsx`, xls, "binary");
+  }else{
+    console.log(`请到config.js文件下填写任意平台的key`)
+  }
+
+
+
 }
 
 //百度地图
 
-async function getBDMAPdata(number) {
+async function getBDMAPdata({ number, longitude, latitude, Range = 10000 }) {
   number = number <= 20 ? 20 : number;
   if (!number) {
-    let response = await BDAPI("112.91706", "23.16300", 1).catch((error) => {
+    let response = await BDAPI(longitude, latitude, 1, Range).catch((error) => {
       console.log(error);
       response = false;
     });
@@ -46,12 +62,10 @@ async function getBDMAPdata(number) {
     error_number = 0;
   console.log(number);
   for (let i = 0; i < number / 20; i++) {
-    let response = await BDAPI("112.91706", "23.16300", i + 1).catch(
-      (error) => {
-        console.log(error);
-        response = false;
-      }
-    );
+    let response = await BDAPI(longitude, latitude, i + 1).catch((error) => {
+      console.log(error);
+      response = false;
+    });
     if (response) {
       if (response.data.status == "0") {
         let data = response.data.results;
@@ -85,7 +99,7 @@ function BDSchema(dataList) {
     let temp = {
       店铺名: value.name,
       地址: value.address,
-      电话: value.telephone||"",
+      电话: value.telephone || "",
     };
     jsonArray.push(temp);
   }
@@ -93,10 +107,10 @@ function BDSchema(dataList) {
 }
 
 //高德地图
-async function getGDMAPdata(number) {
+async function getGDMAPdata({ number, longitude, latitude, Range = 10000 }) {
   number = number <= 20 ? 20 : number;
   if (!number) {
-    let response = await GDAPI("112.91706", "23.16300", 1).catch((error) => {
+    let response = await GDAPI(longitude, latitude, 1, Range).catch((error) => {
       console.log(error);
       response = false;
     });
@@ -112,12 +126,10 @@ async function getGDMAPdata(number) {
     error_number = 0;
   console.log(number);
   for (let i = 0; i < number / 20; i++) {
-    let response = await GDAPI("112.91706", "23.16300", i + 1).catch(
-      (error) => {
-        console.log(error);
-        response = false;
-      }
-    );
+    let response = await GDAPI(longitude, latitude, i + 1).catch((error) => {
+      console.log(error);
+      response = false;
+    });
     if (response) {
       if (response.data.status == "1") {
         let data = response.data.pois;
@@ -159,10 +171,10 @@ function GDSchema(dataList) {
 }
 
 //腾讯地图
-async function getTXMAPdata(number) {
+async function getTXMAPdata({ number, longitude, latitude, Range = 10000 }) {
   number = number <= 20 ? 20 : number;
   if (!number) {
-    let response = await TXAPI("112.91706", "23.16300", 1).catch((error) => {
+    let response = await TXAPI(longitude, latitude, 1, Range).catch((error) => {
       console.log(error);
       response = false;
     });
@@ -177,12 +189,10 @@ async function getTXMAPdata(number) {
   let dataList = [];
   console.log(number);
   for (let i = 0; i < number / 20; i++) {
-    let response = await TXAPI("112.91706", "23.16300", i + 1).catch(
-      (error) => {
-        console.log(error);
-        response = false;
-      }
-    );
+    let response = await TXAPI(longitude, latitude, i + 1).catch((error) => {
+      console.log(error);
+      response = false;
+    });
     if (response) {
       if (response.data.status == 0) {
         console.log(response.data.data);
@@ -214,6 +224,7 @@ function TXSchema(dataList) {
       店铺名: value.title,
       地址: value.address,
       电话: value.tel,
+      "与你的距离（米）": value._distance,
     };
     jsonArray.push(temp);
   }

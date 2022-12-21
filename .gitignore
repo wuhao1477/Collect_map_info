@@ -2,3 +2,5 @@ node_modules/
 .idea
 removed/
 .vscode/
+_config.js
+*.xlsx
