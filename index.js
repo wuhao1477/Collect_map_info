@@ -8,6 +8,7 @@ const {
   latitude,
   longitude,
   Range=5000,
+  searchValue = ''
 } = require("./config.js");
 main();
 async function main() {
@@ -19,20 +20,23 @@ async function main() {
     console.log(dataList);
     let txList = TXSchema(dataList);
     let xls = json2xls(txList);
-    fs.writeFileSync(`${Range}米内药店联系方式.xlsx`, xls, "binary");
+    fs.writeFileSync(`${Range}米内${searchValue}联系方式.xlsx`, xls, "binary");
   }else if(GDKey){
         let dataList = await getGDMAPdata({ latitude, longitude, Range });
     console.log(dataList);
     let GDList = GDSchema(dataList);
     let xls = json2xls(GDList);
-    fs.writeFileSync(`${Range}米内药店联系方式.xlsx`, xls, "binary");
+    fs.writeFileSync(`${Range}米内${searchValue}联系方式.xlsx`, xls, "binary");
+    fs.writeFileSync(`${Range}米内${searchValue}联系方式.json`, JSON.stringify(dataList), {
+      encoding: "utf8"
+    });
   }else if(BDKey){
     
   let dataList = await getBDMAPdata({ latitude, longitude, Range });
   console.log(dataList);
   let BDList = BDSchema(dataList);
   let xls = json2xls(BDList);
-  fs.writeFileSync(`${Range}米内药店联系方式.xlsx`, xls, "binary");
+  fs.writeFileSync(`${Range}米内${searchValue}联系方式.xlsx`, xls, "binary");
   }else{
     console.log(`请到config.js文件下填写任意平台的key`)
   }
@@ -84,7 +88,7 @@ async function BDAPI(
   latitude,
   pages,
   Range = 10000,
-  keyword = "药店"
+  keyword = searchValue
 ) {
   var config = {
     method: "get",
@@ -148,11 +152,11 @@ async function GDAPI(
   latitude,
   pages,
   Range = 10000,
-  keyword = "药店"
+  keyword = searchValue
 ) {
   var config = {
     method: "get",
-    url: `https://restapi.amap.com/v3/place/text?key=${GDKey}&keywords=${keyword}&location=${longitude},${latitude}&radius=${Range}&offset=20&extensions=all&page=${pages}`,
+    url: `https://restapi.amap.com/v3/place/text?key=${GDKey}&keywords=${keyword}&location=${longitude},${latitude}&radius=${Range}&offset=20&extensions=all&page=${pages}&extensions=all`,
     headers: {},
   };
   return axios(config);
@@ -164,6 +168,7 @@ function GDSchema(dataList) {
       店铺名: value.name,
       地址: value.address,
       电话: value.tel,
+      '图片': JSON.stringify(value.photos)
     };
     jsonArray.push(temp);
   }
@@ -208,13 +213,14 @@ async function TXAPI(
   latitude,
   pages,
   Range = 10000,
-  keyword = "药店"
+  keyword = searchValue
 ) {
   var config = {
     method: "get",
-    url: `https://apis.map.qq.com/ws/place/v1/search?key=${TXKey}&keyword=${keyword}&boundary=nearby(${latitude},${longitude},${Range},1)&page_size=20&page_index=${pages}`,
+    url: `https://apis.map.qq.com/ws/place/v1/search?key=${TXKey}&keyword=${encodeURI(keyword)}&boundary=nearby(${latitude},${longitude},${Range},1)&page_size=20&page_index=${pages}`,
     headers: {},
   };
+  console.log(config);
   return axios(config);
 }
 function TXSchema(dataList) {
